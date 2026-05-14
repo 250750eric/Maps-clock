@@ -237,24 +237,58 @@
 
   /* 步數面板 */
   #panel-steps::before { background: linear-gradient(90deg, transparent, var(--accent3), transparent); }
+  #panel-steps { padding: 6px 10px; justify-content: flex-start; }
+
+  .tabs {
+    display: flex;
+    width: 100%;
+    gap: 4px;
+    margin-bottom: 5px;
+  }
+
+  .tab-btn {
+    flex: 1;
+    background: rgba(57,255,20,0.08);
+    border: 1px solid rgba(57,255,20,0.2);
+    border-radius: 8px;
+    color: var(--muted);
+    font-size: clamp(8px, 1.6vw, 10px);
+    padding: 3px 0;
+    cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif;
+    transition: all 0.2s;
+    white-space: nowrap;
+  }
+
+  .tab-btn.active {
+    background: rgba(57,255,20,0.25);
+    border-color: var(--accent3);
+    color: var(--accent3);
+    box-shadow: 0 0 8px rgba(57,255,20,0.3);
+  }
+
+  .tab-btn:active { transform: scale(0.95); }
+
+  .tab-content { display: none; width: 100%; align-items: center; flex-direction: column; }
+  .tab-content.active { display: flex; }
 
   .steps-display {
     font-family: 'Orbitron', monospace;
-    font-size: clamp(28px, 5.5vw, 44px);
+    font-size: clamp(26px, 5vw, 40px);
     font-weight: 900;
     color: var(--accent3);
     text-shadow: 0 0 20px rgba(57,255,20,0.4);
     line-height: 1;
   }
 
-  .steps-goal {
+  .steps-sub {
     font-size: clamp(9px, 1.8vw, 11px);
     color: var(--muted);
     margin-top: 3px;
   }
 
   .steps-bar {
-    width: 80%;
+    width: 85%;
     height: 4px;
     background: rgba(57,255,20,0.15);
     border-radius: 2px;
@@ -268,6 +302,52 @@
     border-radius: 2px;
     transition: width 1s ease;
     box-shadow: 0 0 8px var(--accent3);
+  }
+
+  .trip-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .trip-item {
+    background: rgba(57,255,20,0.06);
+    border: 1px solid rgba(57,255,20,0.15);
+    border-radius: 6px;
+    padding: 4px 6px;
+    text-align: center;
+  }
+
+  .trip-val {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(13px, 2.5vw, 18px);
+    font-weight: 700;
+    color: var(--accent3);
+  }
+
+  .trip-lbl {
+    font-size: 9px;
+    color: var(--muted);
+    margin-top: 1px;
+  }
+
+  .reset-btn {
+    background: rgba(255,80,80,0.12);
+    border: 1px solid rgba(255,80,80,0.3);
+    border-radius: 16px;
+    color: #ff5050;
+    font-size: clamp(8px, 1.6vw, 10px);
+    padding: 4px 14px;
+    cursor: pointer;
+    font-family: 'Noto Sans TC', sans-serif;
+    margin-top: 5px;
+    transition: all 0.2s;
+  }
+
+  .reset-btn:active {
+    background: rgba(255,80,80,0.3);
+    transform: scale(0.95);
   }
 
   /* GPS狀態指示 */
@@ -337,12 +417,50 @@
   </div>
 </div>
 
-<!-- 右下：步數 -->
+<!-- 右下：步數/旅程/歸零 -->
 <div class="panel" id="panel-steps">
-  <div class="panel-label">健走步數</div>
-  <div class="steps-display" id="steps-display">0</div>
-  <div class="steps-goal" id="steps-goal">目標 10,000 步</div>
-  <div class="steps-bar"><div class="steps-bar-fill" id="steps-bar" style="width:0%"></div></div>
+  <div class="tabs">
+    <button class="tab-btn active" onclick="switchTab('steps')">健走步數</button>
+    <button class="tab-btn" onclick="switchTab('trip')">這趟旅程</button>
+    <button class="tab-btn" onclick="switchTab('reset')">歸零</button>
+  </div>
+
+  <!-- 健走步數 -->
+  <div class="tab-content active" id="tab-steps">
+    <div class="steps-display" id="steps-display">0</div>
+    <div class="steps-sub" id="steps-goal">目標 10,000 步</div>
+    <div class="steps-bar"><div class="steps-bar-fill" id="steps-bar" style="width:0%"></div></div>
+  </div>
+
+  <!-- 這趟旅程 -->
+  <div class="tab-content" id="tab-trip">
+    <div class="trip-grid">
+      <div class="trip-item">
+        <div class="trip-val" id="trip-dist">0.0</div>
+        <div class="trip-lbl">公里</div>
+      </div>
+      <div class="trip-item">
+        <div class="trip-val" id="trip-time">00:00</div>
+        <div class="trip-lbl">時間</div>
+      </div>
+      <div class="trip-item">
+        <div class="trip-val" id="trip-maxspeed">0</div>
+        <div class="trip-lbl">最高速 km/h</div>
+      </div>
+      <div class="trip-item">
+        <div class="trip-val" id="trip-avgspeed">0</div>
+        <div class="trip-lbl">平均速 km/h</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 歸零 -->
+  <div class="tab-content" id="tab-reset">
+    <div class="steps-sub" style="text-align:center;margin-bottom:8px;">選擇要歸零的項目</div>
+    <button class="reset-btn" onclick="resetSteps()">👟 步數歸零</button>
+    <button class="reset-btn" style="margin-top:4px;" onclick="resetTrip()">🏍️ 旅程歸零</button>
+    <button class="reset-btn" style="margin-top:4px;color:#ffaa00;border-color:rgba(255,170,0,0.4);background:rgba(255,170,0,0.1);" onclick="resetAll()">⚠️ 全部歸零</button>
+  </div>
 </div>
 
 <script>
@@ -351,32 +469,47 @@ let is24h = true;
 let announceEnabled = true;
 let currentLat = null, currentLon = null;
 let currentSpeed = 0;
-let lastPosition = null;
+let lastGPSLat = null, lastGPSLon = null, lastGPSTime = null;
 let stepCount = 0;
 let stepGoal = 10000;
 let map = null, marker = null;
 let lastHour = -1;
 
+// 旅程
+let tripDist = 0;       // 公里
+let tripMaxSpeed = 0;
+let tripSpeedSum = 0;
+let tripSpeedCount = 0;
+let tripStartTime = null;
+let tripTimerInterval = null;
+let currentTab = 'steps';
+
+// ============ Tab切換 ============
+function switchTab(name) {
+  currentTab = name;
+  document.querySelectorAll('.tab-btn').forEach((b,i) => {
+    b.classList.toggle('active', ['steps','trip','reset'][i] === name);
+  });
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + name).classList.add('active');
+}
+
 // ============ 地圖初始化 ============
 function initMap() {
   map = L.map('map', { zoomControl: false, attributionControl: false })
-    .setView([23.6978, 120.9605], 13);
+    .setView([23.6978, 120.9605], 15);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19
   }).addTo(map);
 
-  // 自訂標記
   const icon = L.divIcon({
     className: '',
     html: `<div style="width:16px;height:16px;background:#00d4ff;border:3px solid #fff;border-radius:50%;box-shadow:0 0 12px #00d4ff;"></div>`,
-    iconSize: [16, 16],
-    iconAnchor: [8, 8]
+    iconSize: [16, 16], iconAnchor: [8, 8]
   });
 
   marker = L.marker([23.6978, 120.9605], { icon }).addTo(map);
-
-  // 縮放控制
   L.control.zoom({ position: 'bottomright' }).addTo(map);
 }
 
@@ -389,18 +522,44 @@ function startGPS() {
 
   navigator.geolocation.watchPosition(
     pos => {
-      currentLat = pos.coords.latitude;
-      currentLon = pos.coords.longitude;
-      const speed = pos.coords.speed;
+      const lat = pos.coords.latitude;
+      const lon = pos.coords.longitude;
+      const now = Date.now();
 
-      // 更新速度（m/s → km/h）
-      if (speed !== null && speed >= 0) {
-        currentSpeed = Math.round(speed * 3.6);
-      } else {
-        currentSpeed = 0;
+      // 用座標差計算速度（更可靠）
+      if (lastGPSLat !== null) {
+        const dt = (now - lastGPSTime) / 1000; // 秒
+        if (dt > 0.5) {
+          const dist = haversine(lastGPSLat, lastGPSLon, lat, lon); // 公里
+          const spd = (dist / dt) * 3600; // km/h
+
+          // 濾掉 GPS 跳點（超過 200km/h 忽略）
+          if (spd < 200) {
+            currentSpeed = Math.round(spd);
+            tripDist += dist;
+            tripSpeedSum += currentSpeed;
+            tripSpeedCount++;
+            if (currentSpeed > tripMaxSpeed) tripMaxSpeed = currentSpeed;
+          }
+        }
+      }
+
+      // 也嘗試用原生speed
+      if (pos.coords.speed !== null && pos.coords.speed >= 0 && currentSpeed === 0) {
+        currentSpeed = Math.round(pos.coords.speed * 3.6);
+      }
+
+      lastGPSLat = lat; lastGPSLon = lon; lastGPSTime = now;
+      currentLat = lat; currentLon = lon;
+
+      // 啟動旅程計時
+      if (!tripStartTime) {
+        tripStartTime = now;
+        tripTimerInterval = setInterval(updateTripTime, 1000);
       }
 
       updateSpeedDisplay();
+      updateTripStats();
       updateMapPosition();
       updateCoords();
 
@@ -411,8 +570,18 @@ function startGPS() {
       document.getElementById('map-status').textContent = '⚠️ GPS 無法取得';
       document.getElementById('gps-dot').classList.remove('active');
     },
-    { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+    { enableHighAccuracy: true, maximumAge: 1000, timeout: 10000 }
   );
+}
+
+// Haversine 距離公式（公里）
+function haversine(lat1, lon1, lat2, lon2) {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2)**2 +
+    Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
 function updateMapPosition() {
@@ -435,6 +604,24 @@ function updateSpeedDisplay() {
   document.getElementById('speed-bar').style.width = pct + '%';
 }
 
+// ============ 旅程統計 ============
+function updateTripStats() {
+  document.getElementById('trip-dist').textContent = tripDist.toFixed(1);
+  document.getElementById('trip-maxspeed').textContent = tripMaxSpeed;
+  const avg = tripSpeedCount > 0 ? Math.round(tripSpeedSum / tripSpeedCount) : 0;
+  document.getElementById('trip-avgspeed').textContent = avg;
+}
+
+function updateTripTime() {
+  if (!tripStartTime) return;
+  const elapsed = Math.floor((Date.now() - tripStartTime) / 1000);
+  const h = Math.floor(elapsed / 3600);
+  const m = Math.floor((elapsed % 3600) / 60);
+  const s = elapsed % 60;
+  document.getElementById('trip-time').textContent =
+    h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
+}
+
 // ============ 時間 ============
 function updateTime() {
   const now = new Date();
@@ -442,25 +629,19 @@ function updateTime() {
   const m = now.getMinutes();
   const s = now.getSeconds();
 
-  let displayH = h;
-  let suffix = '';
+  let displayH = h, suffix = '';
   if (!is24h) {
     suffix = h >= 12 ? ' PM' : ' AM';
     displayH = h % 12 || 12;
   }
 
-  const timeStr = `${pad(displayH)}:${pad(m)}:${pad(s)}${suffix}`;
-  document.getElementById('time-display').textContent = timeStr;
+  document.getElementById('time-display').textContent = `${pad(displayH)}:${pad(m)}:${pad(s)}${suffix}`;
 
-  // 日期
   const days = ['日','一','二','三','四','五','六'];
   document.getElementById('date-display').textContent =
     `${now.getFullYear()}/${pad(now.getMonth()+1)}/${pad(now.getDate())} 週${days[now.getDay()]}`;
-
-  // 農曆
   document.getElementById('lunar-display').textContent = getLunar(now);
 
-  // 整點報時
   if (m === 0 && s === 0 && h !== lastHour) {
     lastHour = h;
     if (announceEnabled) announceTime(h, m);
@@ -469,15 +650,13 @@ function updateTime() {
 
 function pad(n) { return String(n).padStart(2, '0'); }
 
-// ============ 農曆計算 ============
+// ============ 農曆 ============
 function getLunar(date) {
   const lunarMonths = ['正','二','三','四','五','六','七','八','九','十','冬','臘'];
   const lunarDays = ['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
     '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
     '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
-
-  // 簡易農曆對應（2024-2026範圍）
-  const baseDate = new Date(2024, 1, 10); // 2024/2/10 = 農曆正月初一
+  const baseDate = new Date(2024, 1, 10);
   const diffDays = Math.floor((date - baseDate) / 86400000);
   const lunarDay = ((diffDays % 30) + 30) % 30;
   const lunarMonth = Math.floor(((diffDays % 360) + 360) % 360 / 30);
@@ -488,29 +667,18 @@ function getLunar(date) {
 function announceTime(h, m) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
-
-  let text = '';
   const timeLabel = is24h
     ? `${h}點${m === 0 ? '整' : m + '分'}`
     : `${h >= 12 ? '下午' : '上午'}${h % 12 || 12}點${m === 0 ? '整' : m + '分'}`;
-
-  if (m === 0) {
-    const greetings = {
-      6: '早安！', 7: '早安！', 8: '早安！',
-      12: '午安，吃飯了！', 13: '午休時間',
-      18: '傍晚了，該休息一下！',
-      21: '晚上好！', 22: '準備睡覺囉！', 23: '夜深了，注意休息！',
-      0: '午夜零時，好夢！'
-    };
-    text = `現在${timeLabel}。${greetings[h] || ''}`;
-  } else {
-    text = `現在${timeLabel}`;
-  }
-
+  const greetings = {
+    6:'早安！',7:'早安！',8:'早安！',
+    12:'午安，吃飯了！',13:'午休時間',
+    18:'傍晚了，該休息一下！',
+    21:'晚上好！',22:'準備睡覺囉！',23:'夜深了，注意休息！',0:'午夜零時，好夢！'
+  };
+  const text = `現在${timeLabel}。${greetings[h] || ''}`;
   const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = 'zh-TW';
-  utter.rate = 0.9;
-  utter.pitch = 1;
+  utter.lang = 'zh-TW'; utter.rate = 0.9; utter.pitch = 1;
   window.speechSynthesis.speak(utter);
 }
 
@@ -519,24 +687,15 @@ function announceNow() {
   announceTime(now.getHours(), now.getMinutes());
 }
 
-// ============ 計步器（加速度計） ============
-let lastAcc = null;
-let stepThreshold = 12;
-let stepCooldown = false;
+// ============ 計步器 ============
+let lastAcc = null, stepThreshold = 12, stepCooldown = false;
 
 function initPedometer() {
-  if (typeof DeviceMotionEvent === 'undefined') {
-    document.getElementById('steps-goal').textContent = '裝置不支援計步';
-    return;
-  }
-
+  if (typeof DeviceMotionEvent === 'undefined') return;
   if (typeof DeviceMotionEvent.requestPermission === 'function') {
-    // iOS 需要權限
     DeviceMotionEvent.requestPermission().then(r => {
       if (r === 'granted') listenMotion();
-    }).catch(() => {
-      document.getElementById('steps-goal').textContent = '需要動作權限';
-    });
+    }).catch(() => {});
   } else {
     listenMotion();
   }
@@ -547,58 +706,18 @@ function listenMotion() {
     const acc = e.accelerationIncludingGravity;
     if (!acc) return;
     const mag = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
-
     if (lastAcc !== null) {
       const delta = Math.abs(mag - lastAcc);
       if (delta > stepThreshold && !stepCooldown) {
         stepCount++;
         stepCooldown = true;
         setTimeout(() => stepCooldown = false, 400);
-        updateSteps();
+        updateStepsDisplay();
       }
     }
     lastAcc = mag;
   });
 }
 
-function updateSteps() {
-  document.getElementById('steps-display').textContent = stepCount.toLocaleString();
-  const pct = Math.min(stepCount / stepGoal * 100, 100);
-  document.getElementById('steps-bar').style.width = pct + '%';
-  document.getElementById('steps-goal').textContent =
-    stepCount >= stepGoal ? '✅ 達成目標！' : `目標 ${stepGoal.toLocaleString()} 步`;
-}
-
-// ============ 設定按鈕 ============
-function toggleAnnounce() {
-  announceEnabled = !announceEnabled;
-  const btn = document.getElementById('btn-announce');
-  btn.textContent = announceEnabled ? '開啟' : '關閉';
-  btn.classList.toggle('active', announceEnabled);
-}
-
-function toggleHour() {
-  is24h = !is24h;
-  const btn = document.getElementById('btn-hour');
-  btn.textContent = is24h ? '24H' : '12H';
-  btn.classList.toggle('active', is24h);
-}
-
-// ============ 啟動 ============
-document.addEventListener('DOMContentLoaded', () => {
-  initMap();
-  startGPS();
-  initPedometer();
-  updateTime();
-  setInterval(updateTime, 1000);
-
-  // 防止睡眠（Android WebView）
-  let noSleep = document.createElement('video');
-  noSleep.setAttribute('loop', '');
-  noSleep.setAttribute('playsinline', '');
-  noSleep.style.display = 'none';
-  document.body.appendChild(noSleep);
-});
-</script>
-</body>
-</html>
+function updateStepsDisplay() {
+  document.getElementById('steps-display').textContent
