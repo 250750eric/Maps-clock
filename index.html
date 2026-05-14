@@ -1,195 +1,604 @@
 <!DOCTYPE html>
 <html lang="zh-TW">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-    <title>GPS Maps 儀表板</title>
-    <!-- 引入 Leaflet CSS -->
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-        body, html {
-            margin: 0;
-            padding: 0;
-            height: 100%;
-            background-color: #1e1e1e;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-        }
-        /* 頂部：時間與時速 */
-        .top-row {
-            display: flex;
-            height: 15%;
-            min-height: 80px;
-            border-bottom: 2px solid #333;
-            background-color: #2a2a2a;
-        }
-        /* 中間：地圖 */
-        .map-container {
-            flex: 1;
-            position: relative;
-        }
-        #map {
-            width: 100%;
-            height: 100%;
-        }
-        /* 底部：報時設定與步數 */
-        .bottom-row {
-            display: flex;
-            height: 15%;
-            min-height: 80px;
-            border-top: 2px solid #333;
-            background-color: #2a2a2a;
-        }
-        /* 區塊共用樣式 */
-        .panel {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            border-right: 2px solid #333;
-        }
-        .panel:last-child {
-            border-right: none;
-        }
-        .label {
-            font-size: 0.9rem;
-            color: #aaaaaa;
-            margin-bottom: 4px;
-        }
-        .value {
-            font-size: 1.5rem;
-            font-weight: bold;
-        }
-        /* 按鈕樣式 */
-        .settings-btn {
-            background: none;
-            border: none;
-            color: #4facfe;
-            font-size: 1.2rem;
-            font-weight: bold;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-        }
-        .settings-btn:active {
-            color: #2a8bdc;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>GPS Clock Elite v2</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Noto+Sans+TC:wght@300;400;700&display=swap');
+
+  :root {
+    --bg: #0a0e1a;
+    --panel: #0f1628;
+    --border: #1e3a5f;
+    --accent: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #39ff14;
+    --text: #e0f0ff;
+    --muted: #4a6fa5;
+    --glow: 0 0 20px rgba(0,212,255,0.3);
+    --glow2: 0 0 20px rgba(255,107,53,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Noto Sans TC', sans-serif;
+    height: 100vh;
+    overflow: hidden;
+    display: grid;
+    grid-template-rows: 1fr 2.5fr 1fr;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .panel::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    opacity: 0.6;
+  }
+
+  .panel-label {
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 4px;
+    font-family: 'Orbitron', monospace;
+  }
+
+  /* 時間面板 */
+  #panel-time { border-top-color: var(--accent); }
+  #panel-time::before { background: linear-gradient(90deg, transparent, var(--accent), transparent); }
+
+  .time-display {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(28px, 6vw, 48px);
+    font-weight: 900;
+    color: var(--accent);
+    text-shadow: var(--glow);
+    letter-spacing: 2px;
+    line-height: 1;
+  }
+
+  .date-display {
+    font-size: clamp(10px, 2vw, 13px);
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: 1px;
+  }
+
+  .lunar-display {
+    font-size: clamp(9px, 1.8vw, 11px);
+    color: var(--accent);
+    opacity: 0.7;
+    margin-top: 2px;
+  }
+
+  /* 時速面板 */
+  #panel-speed::before { background: linear-gradient(90deg, transparent, var(--accent2), transparent); }
+
+  .speed-display {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(32px, 7vw, 56px);
+    font-weight: 900;
+    color: var(--accent2);
+    text-shadow: var(--glow2);
+    line-height: 1;
+  }
+
+  .speed-unit {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(10px, 2vw, 14px);
+    color: var(--accent2);
+    opacity: 0.7;
+    letter-spacing: 2px;
+  }
+
+  .speed-bar {
+    width: 80%;
+    height: 4px;
+    background: rgba(255,107,53,0.15);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+
+  .speed-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent2), #ff9f1c);
+    border-radius: 2px;
+    transition: width 0.5s ease;
+    box-shadow: 0 0 8px var(--accent2);
+  }
+
+  /* 地圖面板 */
+  #panel-map {
+    grid-column: 1 / 3;
+    padding: 0;
+    overflow: hidden;
+  }
+
+  #panel-map::before { display: none; }
+
+  #map {
+    width: 100%;
+    height: 100%;
+    border-radius: 12px;
+  }
+
+  .map-overlay {
+    position: absolute;
+    top: 8px;
+    left: 8px;
+    background: rgba(10,14,26,0.85);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    color: var(--accent);
+    letter-spacing: 1px;
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+
+  .map-coords {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    background: rgba(10,14,26,0.85);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px 10px;
+    font-size: 9px;
+    color: var(--muted);
+    z-index: 1000;
+    backdrop-filter: blur(4px);
+  }
+
+  /* 設定面板 */
+  #panel-settings::before { background: linear-gradient(90deg, transparent, #a855f7, transparent); }
+
+  .setting-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    margin: 3px 0;
+    gap: 8px;
+  }
+
+  .setting-label {
+    font-size: clamp(9px, 1.8vw, 11px);
+    color: var(--muted);
+    white-space: nowrap;
+  }
+
+  .toggle-btn {
+    background: rgba(168,85,247,0.15);
+    border: 1px solid rgba(168,85,247,0.4);
+    border-radius: 20px;
+    color: #a855f7;
+    font-size: clamp(8px, 1.6vw, 10px);
+    padding: 3px 8px;
+    cursor: pointer;
+    font-family: 'Orbitron', monospace;
+    white-space: nowrap;
+    transition: all 0.2s;
+  }
+
+  .toggle-btn.active {
+    background: rgba(168,85,247,0.4);
+    box-shadow: 0 0 10px rgba(168,85,247,0.4);
+  }
+
+  .toggle-btn:active {
+    transform: scale(0.95);
+  }
+
+  .announce-btn {
+    background: rgba(0,212,255,0.1);
+    border: 1px solid rgba(0,212,255,0.3);
+    border-radius: 20px;
+    color: var(--accent);
+    font-size: clamp(8px, 1.6vw, 10px);
+    padding: 3px 8px;
+    cursor: pointer;
+    font-family: 'Orbitron', monospace;
+    transition: all 0.2s;
+  }
+
+  .announce-btn:active {
+    background: rgba(0,212,255,0.3);
+    transform: scale(0.95);
+  }
+
+  /* 步數面板 */
+  #panel-steps::before { background: linear-gradient(90deg, transparent, var(--accent3), transparent); }
+
+  .steps-display {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(28px, 5.5vw, 44px);
+    font-weight: 900;
+    color: var(--accent3);
+    text-shadow: 0 0 20px rgba(57,255,20,0.4);
+    line-height: 1;
+  }
+
+  .steps-goal {
+    font-size: clamp(9px, 1.8vw, 11px);
+    color: var(--muted);
+    margin-top: 3px;
+  }
+
+  .steps-bar {
+    width: 80%;
+    height: 4px;
+    background: rgba(57,255,20,0.15);
+    border-radius: 2px;
+    margin-top: 5px;
+    overflow: hidden;
+  }
+
+  .steps-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent3), #7fff00);
+    border-radius: 2px;
+    transition: width 1s ease;
+    box-shadow: 0 0 8px var(--accent3);
+  }
+
+  /* GPS狀態指示 */
+  .gps-dot {
+    width: 6px; height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    display: inline-block;
+    margin-right: 4px;
+    transition: background 0.5s;
+  }
+  .gps-dot.active {
+    background: var(--accent3);
+    box-shadow: 0 0 6px var(--accent3);
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+  }
+
+  /* Leaflet 覆蓋深色 */
+  .leaflet-tile-pane { filter: brightness(0.85) saturate(0.7) hue-rotate(180deg) invert(1); }
+  .leaflet-marker-pane, .leaflet-overlay-pane { filter: none; }
+</style>
 </head>
 <body>
 
-    <!-- 頂部區塊 -->
-    <div class="top-row">
-        <div class="panel">
-            <div class="label">🕘 時間</div>
-            <div class="value" id="time-display">00:00:00</div>
-        </div>
-        <div class="panel">
-            <div class="label">🏎️ 時速</div>
-            <div class="value" id="speed-display">0 km/h</div>
-        </div>
-    </div>
+<!-- 左上：時間 -->
+<div class="panel" id="panel-time">
+  <div class="panel-label"><span class="gps-dot" id="gps-dot"></span>GPS TIME</div>
+  <div class="time-display" id="time-display">--:--:--</div>
+  <div class="date-display" id="date-display">----/--/--</div>
+  <div class="lunar-display" id="lunar-display">農曆 --月--</div>
+</div>
 
-    <!-- 中間地圖區塊 -->
-    <div class="map-container">
-        <div id="map"></div>
-    </div>
+<!-- 右上：時速 -->
+<div class="panel" id="panel-speed">
+  <div class="panel-label">SPEED</div>
+  <div class="speed-display" id="speed-display">0</div>
+  <div class="speed-unit">KM/H</div>
+  <div class="speed-bar"><div class="speed-bar-fill" id="speed-bar" style="width:0%"></div></div>
+</div>
 
-    <!-- 底部區塊 -->
-    <div class="bottom-row">
-        <div class="panel">
-            <button class="settings-btn" id="chime-btn">⚙️ 報時設定</button>
-        </div>
-        <div class="panel">
-            <div class="label">👟 步數</div>
-            <div class="value" id="steps-display">0</div>
-        </div>
-    </div>
+<!-- 中：地圖 -->
+<div class="panel" id="panel-map">
+  <div id="map"></div>
+  <div class="map-overlay" id="map-status">🗺 等待GPS定位...</div>
+  <div class="map-coords" id="map-coords">---</div>
+</div>
 
-    <!-- 引入 Leaflet JS -->
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <script>
-        // --- 1. 時間更新功能 ---
-        function updateTime() {
-            const now = new Date();
-            const hours = String(now.getHours()).padStart(2, '0');
-            const minutes = String(now.getMinutes()).padStart(2, '0');
-            const seconds = String(now.getSeconds()).padStart(2, '0');
-            document.getElementById('time-display').textContent = `${hours}:${minutes}:${seconds}`;
-        }
-        setInterval(updateTime, 1000);
-        updateTime();
+<!-- 左下：設定 -->
+<div class="panel" id="panel-settings">
+  <div class="panel-label">設定</div>
+  <div class="setting-row">
+    <span class="setting-label">報時</span>
+    <button class="toggle-btn active" id="btn-announce" onclick="toggleAnnounce()">開啟</button>
+  </div>
+  <div class="setting-row">
+    <span class="setting-label">時制</span>
+    <button class="toggle-btn active" id="btn-hour" onclick="toggleHour()">24H</button>
+  </div>
+  <div class="setting-row">
+    <span class="setting-label">立即報時</span>
+    <button class="announce-btn" onclick="announceNow()">▶ 報時</button>
+  </div>
+</div>
 
-        // --- 2. OpenStreetMap 地圖初始化 ---
-        // 預設中心點設為台中市北區
-        const map = L.map('map').setView([24.162, 120.683], 15);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors',
-            maxZoom: 19
-        }).addTo(map);
+<!-- 右下：步數 -->
+<div class="panel" id="panel-steps">
+  <div class="panel-label">健走步數</div>
+  <div class="steps-display" id="steps-display">0</div>
+  <div class="steps-goal" id="steps-goal">目標 10,000 步</div>
+  <div class="steps-bar"><div class="steps-bar-fill" id="steps-bar" style="width:0%"></div></div>
+</div>
 
-        let userMarker = L.marker([24.162, 120.683]).addTo(map);
+<script>
+// ============ 狀態 ============
+let is24h = true;
+let announceEnabled = true;
+let currentLat = null, currentLon = null;
+let currentSpeed = 0;
+let lastPosition = null;
+let stepCount = 0;
+let stepGoal = 10000;
+let map = null, marker = null;
+let lastHour = -1;
 
-        // --- 3. GPS 定位與時速追蹤 ---
-        if ("geolocation" in navigator) {
-            navigator.geolocation.watchPosition(
-                function(position) {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    const speed = position.coords.speed; // 單位：公尺/秒 (m/s)
+// ============ 地圖初始化 ============
+function initMap() {
+  map = L.map('map', { zoomControl: false, attributionControl: false })
+    .setView([23.6978, 120.9605], 13);
 
-                    // 更新地圖位置與標記
-                    const newLatLng = new L.LatLng(lat, lng);
-                    userMarker.setLatLng(newLatLng);
-                    map.panTo(newLatLng);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19
+  }).addTo(map);
 
-                    // 處理時速 (將 m/s 轉換為 km/h)
-                    if (speed !== null && speed >= 0) {
-                        const speedKmh = (speed * 3.6).toFixed(1);
-                        document.getElementById('speed-display').textContent = `${speedKmh} km/h`;
-                    }
-                },
-                function(error) {
-                    console.log("GPS 錯誤: ", error.message);
-                },
-                {
-                    enableHighAccuracy: true,
-                    maximumAge: 0,
-                    timeout: 5000
-                }
-            );
-        } else {
-            document.getElementById('speed-display').textContent = "不支援 GPS";
-        }
+  // 自訂標記
+  const icon = L.divIcon({
+    className: '',
+    html: `<div style="width:16px;height:16px;background:#00d4ff;border:3px solid #fff;border-radius:50%;box-shadow:0 0 12px #00d4ff;"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+  });
 
-        // --- 4. 報時設定按鈕 (模擬) ---
-        let chimeEnabled = false;
-        document.getElementById('chime-btn').addEventListener('click', function() {
-            chimeEnabled = !chimeEnabled;
-            if (chimeEnabled) {
-                this.textContent = "🔊 報時開啟";
-                this.style.color = "#4caf50";
-            } else {
-                this.textContent = "⚙️ 報時設定";
-                this.style.color = "#4facfe";
-            }
-        });
+  marker = L.marker([23.6978, 120.9605], { icon }).addTo(map);
 
-        // --- 5. 步數功能 (模擬) ---
-        // 網頁端獲取真實步數需依賴 DeviceMotionEvent 或 Pedometer API (支援度有限)
-        // 此處使用點擊螢幕模擬步數增加，方便測試版面
-        let stepCount = 0;
-        document.body.addEventListener('click', function() {
-            stepCount += Math.floor(Math.random() * 3) + 1; // 隨機增加 1~3 步
-            document.getElementById('steps-display').textContent = stepCount;
-        });
-    </script>
+  // 縮放控制
+  L.control.zoom({ position: 'bottomright' }).addTo(map);
+}
+
+// ============ GPS 定位 ============
+function startGPS() {
+  if (!navigator.geolocation) {
+    document.getElementById('map-status').textContent = '❌ 不支援GPS';
+    return;
+  }
+
+  navigator.geolocation.watchPosition(
+    pos => {
+      currentLat = pos.coords.latitude;
+      currentLon = pos.coords.longitude;
+      const speed = pos.coords.speed;
+
+      // 更新速度（m/s → km/h）
+      if (speed !== null && speed >= 0) {
+        currentSpeed = Math.round(speed * 3.6);
+      } else {
+        currentSpeed = 0;
+      }
+
+      updateSpeedDisplay();
+      updateMapPosition();
+      updateCoords();
+
+      document.getElementById('gps-dot').classList.add('active');
+      document.getElementById('map-status').textContent = '📡 GPS 定位中';
+    },
+    err => {
+      document.getElementById('map-status').textContent = '⚠️ GPS 無法取得';
+      document.getElementById('gps-dot').classList.remove('active');
+    },
+    { enableHighAccuracy: true, maximumAge: 2000, timeout: 10000 }
+  );
+}
+
+function updateMapPosition() {
+  if (!map || !marker || !currentLat) return;
+  const latlng = [currentLat, currentLon];
+  marker.setLatLng(latlng);
+  map.setView(latlng, map.getZoom());
+}
+
+function updateCoords() {
+  if (!currentLat) return;
+  document.getElementById('map-coords').textContent =
+    `${currentLat.toFixed(5)}°N  ${currentLon.toFixed(5)}°E`;
+}
+
+// ============ 時速顯示 ============
+function updateSpeedDisplay() {
+  document.getElementById('speed-display').textContent = currentSpeed;
+  const pct = Math.min(currentSpeed / 120 * 100, 100);
+  document.getElementById('speed-bar').style.width = pct + '%';
+}
+
+// ============ 時間 ============
+function updateTime() {
+  const now = new Date();
+  const h = now.getHours();
+  const m = now.getMinutes();
+  const s = now.getSeconds();
+
+  let displayH = h;
+  let suffix = '';
+  if (!is24h) {
+    suffix = h >= 12 ? ' PM' : ' AM';
+    displayH = h % 12 || 12;
+  }
+
+  const timeStr = `${pad(displayH)}:${pad(m)}:${pad(s)}${suffix}`;
+  document.getElementById('time-display').textContent = timeStr;
+
+  // 日期
+  const days = ['日','一','二','三','四','五','六'];
+  document.getElementById('date-display').textContent =
+    `${now.getFullYear()}/${pad(now.getMonth()+1)}/${pad(now.getDate())} 週${days[now.getDay()]}`;
+
+  // 農曆
+  document.getElementById('lunar-display').textContent = getLunar(now);
+
+  // 整點報時
+  if (m === 0 && s === 0 && h !== lastHour) {
+    lastHour = h;
+    if (announceEnabled) announceTime(h, m);
+  }
+}
+
+function pad(n) { return String(n).padStart(2, '0'); }
+
+// ============ 農曆計算 ============
+function getLunar(date) {
+  const lunarMonths = ['正','二','三','四','五','六','七','八','九','十','冬','臘'];
+  const lunarDays = ['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
+    '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
+    '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
+
+  // 簡易農曆對應（2024-2026範圍）
+  const baseDate = new Date(2024, 1, 10); // 2024/2/10 = 農曆正月初一
+  const diffDays = Math.floor((date - baseDate) / 86400000);
+  const lunarDay = ((diffDays % 30) + 30) % 30;
+  const lunarMonth = Math.floor(((diffDays % 360) + 360) % 360 / 30);
+  return `農曆 ${lunarMonths[lunarMonth % 12]}月${lunarDays[lunarDay]}`;
+}
+
+// ============ 語音報時 ============
+function announceTime(h, m) {
+  if (!window.speechSynthesis) return;
+  window.speechSynthesis.cancel();
+
+  let text = '';
+  const timeLabel = is24h
+    ? `${h}點${m === 0 ? '整' : m + '分'}`
+    : `${h >= 12 ? '下午' : '上午'}${h % 12 || 12}點${m === 0 ? '整' : m + '分'}`;
+
+  if (m === 0) {
+    const greetings = {
+      6: '早安！', 7: '早安！', 8: '早安！',
+      12: '午安，吃飯了！', 13: '午休時間',
+      18: '傍晚了，該休息一下！',
+      21: '晚上好！', 22: '準備睡覺囉！', 23: '夜深了，注意休息！',
+      0: '午夜零時，好夢！'
+    };
+    text = `現在${timeLabel}。${greetings[h] || ''}`;
+  } else {
+    text = `現在${timeLabel}`;
+  }
+
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.lang = 'zh-TW';
+  utter.rate = 0.9;
+  utter.pitch = 1;
+  window.speechSynthesis.speak(utter);
+}
+
+function announceNow() {
+  const now = new Date();
+  announceTime(now.getHours(), now.getMinutes());
+}
+
+// ============ 計步器（加速度計） ============
+let lastAcc = null;
+let stepThreshold = 12;
+let stepCooldown = false;
+
+function initPedometer() {
+  if (typeof DeviceMotionEvent === 'undefined') {
+    document.getElementById('steps-goal').textContent = '裝置不支援計步';
+    return;
+  }
+
+  if (typeof DeviceMotionEvent.requestPermission === 'function') {
+    // iOS 需要權限
+    DeviceMotionEvent.requestPermission().then(r => {
+      if (r === 'granted') listenMotion();
+    }).catch(() => {
+      document.getElementById('steps-goal').textContent = '需要動作權限';
+    });
+  } else {
+    listenMotion();
+  }
+}
+
+function listenMotion() {
+  window.addEventListener('devicemotion', e => {
+    const acc = e.accelerationIncludingGravity;
+    if (!acc) return;
+    const mag = Math.sqrt(acc.x**2 + acc.y**2 + acc.z**2);
+
+    if (lastAcc !== null) {
+      const delta = Math.abs(mag - lastAcc);
+      if (delta > stepThreshold && !stepCooldown) {
+        stepCount++;
+        stepCooldown = true;
+        setTimeout(() => stepCooldown = false, 400);
+        updateSteps();
+      }
+    }
+    lastAcc = mag;
+  });
+}
+
+function updateSteps() {
+  document.getElementById('steps-display').textContent = stepCount.toLocaleString();
+  const pct = Math.min(stepCount / stepGoal * 100, 100);
+  document.getElementById('steps-bar').style.width = pct + '%';
+  document.getElementById('steps-goal').textContent =
+    stepCount >= stepGoal ? '✅ 達成目標！' : `目標 ${stepGoal.toLocaleString()} 步`;
+}
+
+// ============ 設定按鈕 ============
+function toggleAnnounce() {
+  announceEnabled = !announceEnabled;
+  const btn = document.getElementById('btn-announce');
+  btn.textContent = announceEnabled ? '開啟' : '關閉';
+  btn.classList.toggle('active', announceEnabled);
+}
+
+function toggleHour() {
+  is24h = !is24h;
+  const btn = document.getElementById('btn-hour');
+  btn.textContent = is24h ? '24H' : '12H';
+  btn.classList.toggle('active', is24h);
+}
+
+// ============ 啟動 ============
+document.addEventListener('DOMContentLoaded', () => {
+  initMap();
+  startGPS();
+  initPedometer();
+  updateTime();
+  setInterval(updateTime, 1000);
+
+  // 防止睡眠（Android WebView）
+  let noSleep = document.createElement('video');
+  noSleep.setAttribute('loop', '');
+  noSleep.setAttribute('playsinline', '');
+  noSleep.style.display = 'none';
+  document.body.appendChild(noSleep);
+});
+</script>
 </body>
 </html>
