@@ -179,6 +179,7 @@
   }
 
   /* 設定面板 */
+  #panel-settings { justify-content: flex-start; padding-top: 6px; }
   #panel-settings::before { background: linear-gradient(90deg, transparent, #a855f7, transparent); }
 
   .setting-row {
@@ -402,7 +403,7 @@
 
 <!-- 左下：設定 -->
 <div class="panel" id="panel-settings">
-  <div class="panel-label">設定</div>
+  <div style="width:100%;text-align:center;font-size:clamp(9px,1.8vw,12px);letter-spacing:2px;color:#a855f7;font-family:'Orbitron',monospace;padding:3px 0;margin-bottom:5px;border:1px solid rgba(168,85,247,0.3);border-radius:8px;background:rgba(168,85,247,0.08);">設 定</div>
   <div class="setting-row">
     <span class="setting-label">報時</span>
     <button class="toggle-btn active" id="btn-announce" onclick="toggleAnnounce()">開啟</button>
@@ -497,7 +498,7 @@ function switchTab(name) {
 // ============ 地圖初始化 ============
 function initMap() {
   map = L.map('map', { zoomControl: false, attributionControl: false })
-    .setView([23.6978, 120.9605], 15);
+    .setView([23.6978, 120.9605], 17);
 
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
     maxZoom: 19
@@ -650,20 +651,51 @@ function updateTime() {
 
 function pad(n) { return String(n).padStart(2, '0'); }
 
-// ============ 農曆 ============
+// ============ 農曆（精確查表法 2024-2027）============
 function getLunar(date) {
-  const lunarMonths = ['正','二','三','四','五','六','七','八','九','十','冬','臘'];
   const lunarDays = ['初一','初二','初三','初四','初五','初六','初七','初八','初九','初十',
     '十一','十二','十三','十四','十五','十六','十七','十八','十九','二十',
     '廿一','廿二','廿三','廿四','廿五','廿六','廿七','廿八','廿九','三十'];
-  const baseDate = new Date(2024, 1, 10);
-  const diffDays = Math.floor((date - baseDate) / 86400000);
-  const lunarDay = ((diffDays % 30) + 30) % 30;
-  const lunarMonth = Math.floor(((diffDays % 360) + 360) % 360 / 30);
-  return `農曆 ${lunarMonths[lunarMonth % 12]}月${lunarDays[lunarDay]}`;
+  const lunarMonths = ['正','二','三','四','五','六','七','八','九','十','冬','臘'];
+
+  // 每個農曆月的新月日期（國曆）及天數
+  // [年,月,日, 農曆月名, 天數]
+  const lunarTable = [
+    [2024, 2,10, '正',30],[2024, 3,11, '二',29],[2024, 4, 9, '三',30],
+    [2024, 5, 9, '四',29],[2024, 6, 6, '五',30],[2024, 7, 6, '閏四',29],
+    [2024, 8, 4, '六',30],[2024, 9, 3, '七',29],[2024,10, 3, '八',29],
+    [2024,11, 1, '九',30],[2024,12, 1, '十',29],[2024,12,31, '冬',30],
+    [2025, 1,29, '臘',30],[2025, 2,28, '正',29],[2025, 3,29, '二',30],
+    [2025, 4,28, '三',29],[2025, 5,27, '四',30],[2025, 6,25, '五',29],
+    [2025, 7,25, '六',30],[2025, 8,23, '七',30],[2025, 9,22, '八',29],
+    [2025,10,21, '九',30],[2025,11,20, '十',29],[2025,12,20, '冬',30],
+    [2026, 1,19, '臘',29],[2026, 2,17, '正',30],[2026, 3,19, '二',29],
+    [2026, 4,17, '三',30],[2026, 5,17, '四',29],[2026, 6,15, '五',30],
+    [2026, 7,15, '六',29],[2026, 8,13, '七',30],[2026, 9,12, '八',29],
+    [2026,10,11, '九',30],[2026,11,10, '十',29],[2026,12, 9, '冬',30],
+    [2027, 1, 8, '臘',29],[2027, 2, 6, '正',30],[2027, 3, 8, '二',29],
+  ];
+
+  const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+  // 找到對應的農曆月
+  let found = null;
+  for (let i = lunarTable.length - 1; i >= 0; i--) {
+    const [y, m, d] = lunarTable[i];
+    const monthStart = new Date(y, m-1, d);
+    if (target >= monthStart) {
+      found = { start: monthStart, name: lunarTable[i][3], days: lunarTable[i][4] };
+      break;
+    }
+  }
+
+  if (!found) return '農曆 計算中';
+
+  const dayIndex = Math.floor((target - found.start) / 86400000);
+  return `農曆 ${found.name}月${lunarDays[Math.min(dayIndex, 29)]}`;
 }
 
-// ============ 語音報時 ============
+// ============ 語音報時 ==============
 function announceTime(h, m) {
   if (!window.speechSynthesis) return;
   window.speechSynthesis.cancel();
